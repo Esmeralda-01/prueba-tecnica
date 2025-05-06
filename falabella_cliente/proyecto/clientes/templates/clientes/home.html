@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Consulta Cliente</title>
+    <style>
+        table {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        th, td {
+            padding: 8px 12px;
+            border: 1px solid #ccc;
+        }
+        th {
+            background-color: #f4f4f4;
+        }
+    </style>
+    <script>
+        async function buscarCliente() {
+            const tipoDocumento = document.getElementById("tipo_documento").value;
+            const numeroDocumento = document.getElementById("numero_documento").value;
+
+            const response = await fetch(`/api/buscar-cliente/?tipo_documento=${tipoDocumento}&numero_documento=${numeroDocumento}`);
+            const data = await response.json();
+
+            const resultado = document.getElementById("resultado");
+            resultado.innerHTML = '';
+
+            if (response.ok) {
+                const cliente = data.cliente;
+
+                resultado.innerHTML = `
+                    <h2>Datos del Cliente</h2>
+                    <p><strong>Nombre:</strong> ${cliente.nombre}</p>
+                    <p><strong>Apellido:</strong> ${cliente.apellido}</p>
+                    <p><strong>Correo:</strong> ${cliente.correo}</p>
+                    <p><strong>Teléfono:</strong> ${cliente.telefono}</p>
+                    <p><strong>Tipo de Documento:</strong> ${cliente.tipo_documento}</p>
+                    <p><strong>Número de Documento:</strong> ${cliente.numero_documento}</p>
+
+                    <a href="/api/exportar-cliente/?tipo_documento=${tipoDocumento}&numero_documento=${numeroDocumento}" target="_blank">
+                        Descargar Excel de Compras
+                    </a>
+                `;
+
+                if (data.compras.length > 0) {
+                    resultado.innerHTML += `<h3>Compras</h3>`;
+                    data.compras.forEach(compra => {
+                        resultado.innerHTML += `
+                            <p>🛒 <strong>Fecha:</strong> ${compra.fecha} |
+                            <strong>Descripción:</strong> ${compra.descripcion} |
+                            <strong>Monto:</strong> $${compra.monto.toLocaleString()}</p>
+                        `;
+                    });
+                } else {
+                    resultado.innerHTML += `<p><em>Este cliente no tiene compras registradas.</em></p>`;
+                }
+
+            } else {
+                resultado.innerHTML = `<p style="color:red;">${data.error}</p>`;
+            }
+        }
+
+        async function consultarClientesConCompras() {
+            const resultado = document.getElementById("resultado");
+            resultado.innerHTML = '<p>Cargando datos...</p>';
+
+            const response = await fetch('/api/consultar-clientes-compras/');
+            const data = await response.json();
+
+            resultado.innerHTML = '';
+
+            if (response.ok && data.length > 0) {
+                let tabla = `
+                    <h2>Clientes y Compras</h2>
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Apellido</th>
+                                <th>Correo</th>
+                                <th>Teléfono</th>
+                                <th>Tipo de Documento</th>
+                                <th>Número de Documento</th>
+                                <th>Fecha de Compra</th>
+                                <th>Descripción</th>
+                                <th>Monto</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                `;
+
+                data.forEach(item => {
+                    tabla += `
+                        <tr>
+                            <td>${item.nombre}</td>
+                            <td>${item.apellido}</td>
+                            <td>${item.correo}</td>
+                            <td>${item.telefono}</td>
+                            <td>${item.tipo_documento}</td>
+                            <td>${item.numero_documento}</td>
+                            <td>${item.fecha}</td>
+                            <td>${item.descripcion}</td>
+                            <td>$${parseFloat(item.monto).toLocaleString()}</td>
+                        </tr>
+                    `;
+                });
+
+                tabla += '</tbody></table>';
+                resultado.innerHTML = tabla;
+            } else {
+                resultado.innerHTML = '<p>No se encontraron clientes con compras.</p>';
+            }
+        }
+    </script>
+</head>
+<body>
+    <h1>Consultar Cliente</h1>
+
+    <form onsubmit="event.preventDefault(); buscarCliente();">
+        <label for="tipo_documento">Tipo de Documento:</label>
+        <select id="tipo_documento" required>
+            <option value="1">Cédula</option>
+            <option value="2">NIT</option>
+            <option value="3">Pasaporte</option>
+        </select><br><br>
+
+        <label for="numero_documento">Número de Documento:</label>
+        <input type="text" id="numero_documento" required><br><br>
+
+        <button type="submit">Buscar</button>
+    </form>
+
+    <br>
+    <div id="resultado"></div>
+
+    <br><br>
+    <!-- Botones de descarga y visualización -->
+    <button onclick="descargarReporteFidelizacion()">Descargar Reporte de Fidelización</button>
+<br></br>
+    <button onclick="consultarClientesConCompras()">Ver Todos los Clientes y sus Compras</button>
+</body>
+
+</html>
